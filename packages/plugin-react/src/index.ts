@@ -12,15 +12,14 @@ import {
 } from './fast-refresh'
 import { babelImportToRequire } from './jsx-runtime/babel-import-to-require'
 import { restoreJSX } from './jsx-runtime/restore-jsx'
+import { createFileFilter, FilterOptions, loadPlugin } from './utils'
 
 export interface Options {
-  include?: string | RegExp | Array<string | RegExp>
-  exclude?: string | RegExp | Array<string | RegExp>
   /**
    * Enable `react-refresh` integration. Vite disables this in prod env or build mode.
    * @default true
    */
-  fastRefresh?: boolean
+  fastRefresh?: boolean | FilterOptions
   /**
    * Set this to `"automatic"` to use [vite-react-jsx](https://github.com/alloc/vite-react-jsx).
    * @default "automatic"
@@ -95,7 +94,7 @@ export default function viteReact(opts: Options = {}): PluginOption[] {
   let filter = createFilter(opts.include, opts.exclude)
   let isProduction = true
   let projectRoot = process.cwd()
-  let skipFastRefresh = opts.fastRefresh === false
+  let shouldUseFastRefresh = createFileFilter(opts.fastRefresh ?? true)
   let skipReactImport = false
   let runPluginOverrides = (
     options: ReactBabelOptions,
@@ -136,7 +135,12 @@ export default function viteReact(opts: Options = {}): PluginOption[] {
         resolve: projectRoot
       })
       isProduction = config.isProduction
-      skipFastRefresh ||= isProduction || config.command === 'build'
+      shouldUseFastRefresh = createFileFilter(
+        isProduction || config.command === 'build'
+          ? false
+          : opts.fastRefresh ?? true,
+        projectRoot
+      )
 
       const jsxInject = config.esbuild && config.esbuild.jsxInject
       if (jsxInject && importReactRE.test(jsxInject)) {
@@ -203,8 +207,10 @@ export default function viteReact(opts: Options = {}): PluginOption[] {
 
         const plugins = isProjectFile ? [...babelOptions.plugins] : []
 
-        let useFastRefresh = false
-        if (!skipFastRefresh && !ssr && !isNodeModules) {
+        const usingFastRefresh =
+          !ssr &&
+          !isNodeModules &&
+          shouldUseFastRefresh(id) &&
           // Modules with .js or .ts extension must import React.
           const isReactModule = isJSX || importReactRE.test(code)
           if (isReactModule && filter(id)) {
@@ -331,7 +337,7 @@ export default function viteReact(opts: Options = {}): PluginOption[] {
 
         if (result) {
           let code = result.code!
-          if (useFastRefresh && /\$RefreshReg\$\(/.test(code)) {
+          if (usingFastRefresh && /\$RefreshReg\$\(/.test(code)) {
             const accept = isReasonReact || isRefreshBoundary(result.ast!)
             code = addRefreshWrapper(code, id, accept)
           }
