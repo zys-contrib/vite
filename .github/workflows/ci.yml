@@ -47,14 +47,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-
       - name: Set node version to ${{ matrix.node_version }}
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node_version }}
-          cache: "pnpm"
+
+      - run: corepack enable
 
       - name: Install deps
         run: pnpm install
@@ -86,14 +84,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-
       - name: Set node version to 16
         uses: actions/setup-node@v3
         with:
           node-version: 16
-          cache: "pnpm"
+
+      - run: corepack enable
 
       - name: Install deps
         run: pnpm install
