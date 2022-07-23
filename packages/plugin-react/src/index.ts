@@ -1,7 +1,7 @@
 import path from 'node:path'
 import type { ParserOptions, TransformOptions, types as t } from '@babel/core'
 import * as babel from '@babel/core'
-import { createFilter, normalizePath } from 'vite'
+import { normalizePath } from 'vite'
 import type { Plugin, PluginOption, ResolvedConfig } from 'vite'
 import MagicString from 'magic-string'
 import type { SourceMap } from 'magic-string'
@@ -247,7 +247,7 @@ export default function viteReact(opts: Options = {}): PluginOption[] {
 
         if (usingFastRefresh) {
           plugins.push([
-            await loadPlugin('react-refresh/babel.js'),
+            await loadPlugin('react-refresh/babel'),
             { skipEnvCheck: true }
           ])
         }
